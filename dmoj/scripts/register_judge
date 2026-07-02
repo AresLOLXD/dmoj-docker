@@ -1,0 +1,34 @@
+#!/bin/bash
+cd $(dirname $(dirname $0)) || exit
+
+JUDGE_DIR="$1"
+if [ -z "$JUDGE_DIR" ]; then
+    echo "Usage: $0 <judge-dir>" 1>&2
+    echo "Example: $0 judge-tier3-1" 1>&2
+    exit 1
+fi
+
+JUDGE_YML="$JUDGE_DIR/judge.yml"
+if [ ! -f "$JUDGE_YML" ]; then
+    echo "Error: $JUDGE_YML does not exist" 1>&2
+    exit 1
+fi
+
+KEY=$(openssl rand -base64 75 | tr -d '\n')
+
+docker compose exec $COMPOSE_EXEC_FLAGS site python3 manage.py shell -c "
+from judge.models import Judge
+judge, _ = Judge.objects.update_or_create(name='$JUDGE_DIR', defaults={'auth_key': '$KEY'})
+print(f'Registered judge: {judge.name}')
+"
+
+if [ $? -ne 0 ]; then
+    echo "Error: failed to register judge in the database" 1>&2
+    exit 1
+fi
+
+sed -i "s|^id: .*|id: $JUDGE_DIR|" "$JUDGE_YML"
+sed -i "s|^key: .*|key: $KEY|" "$JUDGE_YML"
+
+echo "Updated $JUDGE_YML with the new id/key."
+echo "Next: docker compose up -d --build $JUDGE_DIR"
