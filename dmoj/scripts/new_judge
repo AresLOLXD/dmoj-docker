@@ -1,0 +1,43 @@
+#!/bin/bash
+cd $(dirname $(dirname $0)) || exit
+
+NAME="$1"
+TEMPLATE="${2:-judge-tier3-1}"
+
+if [ -z "$NAME" ]; then
+    echo "Usage: $0 <name> [template]" 1>&2
+    echo "Example: $0 judge-tier3-2" 1>&2
+    exit 1
+fi
+
+if [ ! -d "$TEMPLATE" ]; then
+    echo "Error: template directory $TEMPLATE does not exist" 1>&2
+    exit 1
+fi
+
+if [ -e "$NAME" ]; then
+    echo "Error: $NAME already exists" 1>&2
+    exit 1
+fi
+
+cp -r "$TEMPLATE" "$NAME"
+sed -i "s|^id: .*|id: <judge name>|" "$NAME/judge.yml"
+sed -i "s|^key: .*|key: <judge authentication key>|" "$NAME/judge.yml"
+
+echo "Created $NAME/ from $TEMPLATE/."
+echo ""
+echo "Add this to docker-compose.yml under services:"
+echo ""
+cat <<COMPOSE
+  $NAME:
+    <<: *judge-tier3-base
+    build:
+      context: .
+      dockerfile: ./$NAME/Dockerfile
+    image: areslolxd/dmoj-judge-tier3
+    volumes:
+      - ./problems/:/problems/:ro
+      - ./$NAME/judge.yml:/judge-config/judge.yml:ro
+COMPOSE
+echo ""
+echo "Then run: ./scripts/register_judge $NAME"
