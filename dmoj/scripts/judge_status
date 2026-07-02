@@ -1,0 +1,12 @@
+#!/bin/bash
+cd $(dirname $(dirname $0)) || exit
+
+docker compose exec $COMPOSE_EXEC_FLAGS site python3 manage.py shell -c "
+from judge.models import Judge
+judges = Judge.objects.all().order_by('name')
+if not judges:
+    print('No judges registered.')
+else:
+    print(f'{\"NAME\":<20} {\"TIER\":<6} {\"ONLINE\":<8} {\"LAST IP\"}')
+    for j in judges:
+        print(f'{j.name:<20} {j.tier:<6} {str(j.online):<8} {j.last_ip or \"-\"}')"
