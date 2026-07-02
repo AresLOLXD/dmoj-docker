@@ -1,4 +1,4 @@
-FROM dmoj/runtimes-tier3
+FROM areslolxd/runtimes-tier3:karel
 
 ARG TAG=AddKarel
 RUN mkdir /judge /problems && cd /judge && \
