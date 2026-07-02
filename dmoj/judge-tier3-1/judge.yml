@@ -1,0 +1,8 @@
+# This must match the "name" of the Judge object created in /admin/judge/.
+# scripts/register_judge sets this automatically to match the directory name.
+id: <judge name>
+# Generated via the "Regenerate" button in /admin/judge/, or by scripts/register_judge.
+key: <judge authentication key>
+# Any directory matching this glob with an init.yml file is treated as a problem.
+problem_storage_globs:
+  - /problems/*

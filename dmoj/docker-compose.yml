@@ -1,4 +1,12 @@
 version: '3.7'
+x-judge-tier3-base: &judge-tier3-base
+  init: true
+  restart: unless-stopped
+  cap_add:
+    - SYS_PTRACE
+  networks: [site]
+  depends_on: [bridged]
+  command: run -c /judge-config/judge.yml bridged
 services:
   db:
     container_name: dmoj_mysql
@@ -98,6 +106,15 @@ services:
     ports:
       - 9999:9999
     depends_on: [base, db, redis]
+  judge-tier3-1:
+    <<: *judge-tier3-base
+    build:
+      context: .
+      dockerfile: ./judge-tier3-1/Dockerfile
+    image: areslolxd/dmoj-judge-tier3
+    volumes:
+      - ./problems/:/problems/:ro
+      - ./judge-tier3-1/judge.yml:/judge-config/judge.yml:ro
   wsevent:
     build:
       context: .
