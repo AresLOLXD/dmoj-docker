@@ -2,7 +2,7 @@
 cd $(dirname $(dirname $0)) || exit
 
 echo "== Updating dmoj/repo submodule =="
-git -C .. submodule update --remote --merge dmoj/repo
+git -C .. submodule update --init --recursive --remote --merge dmoj/repo
 if [ $? -ne 0 ]; then
     echo "Error: submodule update failed" 1>&2
     exit 1
