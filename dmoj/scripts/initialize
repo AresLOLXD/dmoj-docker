@@ -6,3 +6,8 @@ mkdir problems media
 mv ../config.js repo/websocket/
 mv ../local_settings.py repo/dmoj/
 mv ../uwsgi.ini repo/
+
+for f in environment/*.env.example; do
+    target="${f%.example}"
+    [ -f "$target" ] || cp "$f" "$target"
+done
