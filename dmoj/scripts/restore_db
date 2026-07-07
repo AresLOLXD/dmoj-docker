@@ -1,0 +1,33 @@
+#!/bin/bash
+cd $(dirname $(dirname $0)) || exit
+
+set -a
+source environment/mysql.env
+source environment/mysql-admin.env
+set +a
+
+INPUT="$1"
+if [ -z "$INPUT" ]; then
+    echo "Usage: $0 <path-to-sql-file>" 1>&2
+    exit 1
+fi
+if [ ! -f "$INPUT" ]; then
+    echo "Error: $INPUT does not exist" 1>&2
+    exit 1
+fi
+
+echo "This will OVERWRITE the current database ($MYSQL_DATABASE) with $INPUT."
+read -p "Type 'yes' to continue: " CONFIRM
+if [ "$CONFIRM" != "yes" ]; then
+    echo "Aborted."
+    exit 1
+fi
+
+docker compose exec -T $COMPOSE_EXEC_FLAGS db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < "$INPUT"
+
+if [ $? -eq 0 ]; then
+    echo "Restore complete."
+else
+    echo "Error: restore failed" 1>&2
+    exit 1
+fi

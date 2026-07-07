@@ -1,0 +1,20 @@
+#!/bin/bash
+cd $(dirname $(dirname $0)) || exit
+
+set -a
+source environment/mysql.env
+source environment/mysql-admin.env
+set +a
+
+OUTPUT="${1:-backups/dmoj-$(date +%Y-%m-%d-%H%M%S).sql}"
+mkdir -p "$(dirname "$OUTPUT")"
+
+docker compose exec -T $COMPOSE_EXEC_FLAGS db mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" > "$OUTPUT"
+
+if [ $? -eq 0 ]; then
+    echo "Backup written to $OUTPUT"
+else
+    echo "Error: mysqldump failed" 1>&2
+    rm -f "$OUTPUT"
+    exit 1
+fi
