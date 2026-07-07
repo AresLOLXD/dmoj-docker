@@ -140,8 +140,26 @@ In this case, the port that the Nginx instance in the Docker container is publis
 
 ### Setting up a judge
 
-The judge (`judge-tier3-1`) needs to be registered with the site before it
-can connect to `bridged`. Checklist:
+`dmoj/judge-tier3-1/Dockerfile` builds `FROM localhost/areslolxd/runtimes-tier3:karel`
+— a custom runtime image (built from a separate process, not part of this
+repo) that already contains a fully-configured judge with a Karel
+compiler/VM installed. This image must exist in your local image store
+before `docker compose build judge-tier3-1` will succeed; there is no
+automated way to produce it from this repo alone. Contact the image's
+maintainer for the build recipe, or substitute your own pre-built
+runtimes image in the `FROM` line.
+
+The `localhost/` prefix is a podman-specific way of forcing image
+resolution against the local store rather than a registry. Real Docker
+resolves unqualified image names as `docker.io/...` regardless of a
+`localhost/` prefix (which Docker instead reads as "a registry host named
+localhost"), so this Dockerfile as committed only builds correctly under
+podman. A Docker-based deployer will need to drop the `localhost/` prefix
+(and ensure the image is tagged appropriately for Docker's local store) or
+retag their own image to match.
+
+The judge (`judge-tier3-1`) also needs to be registered with the site
+before it can connect to `bridged`. Checklist:
 
 - [ ] `docker compose build judge-tier3-1`
 - [ ] `docker compose up -d site` and `./scripts/migrate` (if not already running)
