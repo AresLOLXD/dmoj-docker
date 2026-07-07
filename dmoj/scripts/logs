@@ -1,0 +1,12 @@
+#!/bin/bash
+cd $(dirname $(dirname $0)) || exit
+
+SERVICE="$1"
+if [ -z "$SERVICE" ]; then
+    echo "Usage: $0 <service>" 1>&2
+    echo "Available services:" 1>&2
+    docker compose config --services 1>&2
+    exit 1
+fi
+
+docker compose logs -f --tail=100 "$SERVICE"
