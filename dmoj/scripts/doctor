@@ -17,7 +17,8 @@ check() {
 }
 
 echo "== Containers =="
-EXPECTED_SERVICES=$(docker compose config --services)
+# base is a network_mode: none build-only stage; it never stays running.
+EXPECTED_SERVICES=$(docker compose config --services | grep -v '^base$')
 for svc in $EXPECTED_SERVICES; do
     STATE=$(docker compose ps --format '{{.State}}' "$svc" 2>/dev/null)
     if [ "$STATE" = "running" ]; then
@@ -39,8 +40,8 @@ check "Redis reachable" docker compose exec -T $COMPOSE_EXEC_FLAGS redis redis-c
 
 echo ""
 echo "== Bridged =="
-check "Bridged judge port (9999) open" docker compose exec -T $COMPOSE_EXEC_FLAGS bridged sh -c "echo > /dev/tcp/localhost/9999"
-check "Bridged Django port (9998) open" docker compose exec -T $COMPOSE_EXEC_FLAGS bridged sh -c "echo > /dev/tcp/localhost/9998"
+check "Bridged judge port (9999) open" docker compose exec -T $COMPOSE_EXEC_FLAGS bridged bash -c "echo > /dev/tcp/localhost/9999"
+check "Bridged Django port (9998) open" docker compose exec -T $COMPOSE_EXEC_FLAGS bridged bash -c "echo > /dev/tcp/localhost/9998"
 
 echo ""
 echo "== Judges =="
@@ -66,15 +67,18 @@ check "nginx responds on :80" curl -sf http://localhost/ -o /dev/null
 
 echo ""
 echo "== wsevent =="
-check "wsevent get port (15100)" docker compose exec -T $COMPOSE_EXEC_FLAGS site sh -c "echo > /dev/tcp/wsevent/15100"
-check "wsevent post port (15101)" docker compose exec -T $COMPOSE_EXEC_FLAGS site sh -c "echo > /dev/tcp/wsevent/15101"
-check "wsevent http port (15102)" docker compose exec -T $COMPOSE_EXEC_FLAGS site sh -c "echo > /dev/tcp/wsevent/15102"
+check "wsevent get port (15100)" docker compose exec -T $COMPOSE_EXEC_FLAGS site bash -c "echo > /dev/tcp/wsevent/15100"
+check "wsevent post port (15101)" docker compose exec -T $COMPOSE_EXEC_FLAGS site bash -c "echo > /dev/tcp/wsevent/15101"
+check "wsevent http port (15102)" docker compose exec -T $COMPOSE_EXEC_FLAGS site bash -c "echo > /dev/tcp/wsevent/15102"
 
 echo ""
 echo "== Rendering services =="
-check "mathoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -sf http://mathoid:10044/ -o /dev/null
-check "pdfoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -sf http://pdfoid:8888/ -o /dev/null
-check "texoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -sf http://texoid:8888/ -o /dev/null
+# No -f: these are reachability checks. mathoid/pdfoid/texoid may return a
+# non-2xx status for a bare GET / (e.g. pdfoid/texoid are POST-only at that
+# route) while still being up; -f would misreport that as down.
+check "mathoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -s http://mathoid:10044/ -o /dev/null
+check "pdfoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -s http://pdfoid:8888/ -o /dev/null
+check "texoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -s http://texoid:8888/ -o /dev/null
 
 echo ""
 if [ "$FAILED" -eq 0 ]; then
