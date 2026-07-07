@@ -1,0 +1,85 @@
+#!/bin/bash
+cd $(dirname $(dirname $0)) || exit
+
+FAILED=0
+
+check() {
+    local desc="$1"
+    shift
+    if "$@" >/tmp/doctor-check.log 2>&1; then
+        echo "✓ $desc"
+    else
+        echo "✗ $desc"
+        sed 's/^/    /' /tmp/doctor-check.log
+        FAILED=1
+    fi
+    rm -f /tmp/doctor-check.log
+}
+
+echo "== Containers =="
+EXPECTED_SERVICES=$(docker compose config --services)
+for svc in $EXPECTED_SERVICES; do
+    STATE=$(docker compose ps --format '{{.State}}' "$svc" 2>/dev/null)
+    if [ "$STATE" = "running" ]; then
+        echo "✓ $svc is running"
+    else
+        echo "✗ $svc is '$STATE' (expected running)"
+        FAILED=1
+    fi
+done
+
+echo ""
+echo "== Django =="
+check "Django system check" docker compose exec -T $COMPOSE_EXEC_FLAGS site python3 manage.py check --deploy
+check "Database reachable" docker compose exec -T $COMPOSE_EXEC_FLAGS site python3 manage.py showmigrations
+
+echo ""
+echo "== Redis =="
+check "Redis reachable" docker compose exec -T $COMPOSE_EXEC_FLAGS redis redis-cli ping
+
+echo ""
+echo "== Bridged =="
+check "Bridged judge port (9999) open" docker compose exec -T $COMPOSE_EXEC_FLAGS bridged sh -c "echo > /dev/tcp/localhost/9999"
+check "Bridged Django port (9998) open" docker compose exec -T $COMPOSE_EXEC_FLAGS bridged sh -c "echo > /dev/tcp/localhost/9998"
+
+echo ""
+echo "== Judges =="
+./scripts/judge_status
+if ! docker compose exec -T $COMPOSE_EXEC_FLAGS site python3 manage.py shell -c "
+from judge.models import Judge
+import sys
+sys.exit(0 if Judge.objects.filter(online=True).exists() else 1)
+"; then
+    echo "✗ No judges are online"
+    FAILED=1
+else
+    echo "✓ At least one judge is online"
+fi
+
+echo ""
+echo "== Static assets =="
+check "Assets volume is non-empty" docker compose exec -T $COMPOSE_EXEC_FLAGS site sh -c "[ -n \"\$(ls -A /assets/)\" ]"
+
+echo ""
+echo "== nginx =="
+check "nginx responds on :80" curl -sf http://localhost/ -o /dev/null
+
+echo ""
+echo "== wsevent =="
+check "wsevent get port (15100)" docker compose exec -T $COMPOSE_EXEC_FLAGS site sh -c "echo > /dev/tcp/wsevent/15100"
+check "wsevent post port (15101)" docker compose exec -T $COMPOSE_EXEC_FLAGS site sh -c "echo > /dev/tcp/wsevent/15101"
+check "wsevent http port (15102)" docker compose exec -T $COMPOSE_EXEC_FLAGS site sh -c "echo > /dev/tcp/wsevent/15102"
+
+echo ""
+echo "== Rendering services =="
+check "mathoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -sf http://mathoid:10044/ -o /dev/null
+check "pdfoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -sf http://pdfoid:8888/ -o /dev/null
+check "texoid responds" docker compose exec -T $COMPOSE_EXEC_FLAGS site curl -sf http://texoid:8888/ -o /dev/null
+
+echo ""
+if [ "$FAILED" -eq 0 ]; then
+    echo "All checks passed."
+else
+    echo "Some checks failed — see ✗ lines above."
+fi
+exit $FAILED
