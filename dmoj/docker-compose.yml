@@ -7,6 +7,13 @@ x-judge-tier3-base: &judge-tier3-base
   networks: [site]
   depends_on: [bridged]
   command: run -c /judge-config/judge.yml bridged
+x-site-static-base: &site-static-base
+  build:
+    context: .
+    dockerfile: ./site/Dockerfile
+  image: ninjaclasher/dmoj-site
+  working_dir: /site/
+  env_file: [environment/mysql.env, environment/site.env]
 services:
   db:
     container_name: dmoj_mysql
@@ -69,11 +76,19 @@ services:
       - cache:/cache/
       - ./media/:/media/
       - ./problems/:/problems/
-      - ./repo/:/site/
+      - ./repo/:/site/:ro
     working_dir: /site/
     env_file: [environment/mysql.env, environment/site.env]
     networks: [site, nginx, db]
     depends_on: [base, db, redis]
+  site-static-build:
+    <<: *site-static-base
+    profiles: ["tools"]
+    volumes:
+      - assets:/assets/
+      - pdfcache:/pdfcache/
+      - ./repo/:/site/:rw
+    networks: [site]
   celery:
     build:
       context: .
@@ -84,7 +99,7 @@ services:
     volumes:
       - pdfcache:/pdfcache/
       - datacache:/datacache/
-      - ./repo/:/site/
+      - ./repo/:/site/:ro
     working_dir: /site/
     env_file: [environment/mysql.env, environment/site.env]
     networks: [site, db]
@@ -99,7 +114,7 @@ services:
     volumes:
       - pdfcache:/pdfcache/
       - ./problems/:/problems/
-      - ./repo/:/site/
+      - ./repo/:/site/:ro
     working_dir: /site/
     env_file: [environment/mysql.env, environment/site.env]
     networks: [site, db]
