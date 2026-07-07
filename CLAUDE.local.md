@@ -11,7 +11,6 @@ Docker Compose setup that runs a self-hosted clone of the [DMOJ online judge](ht
 - `dmoj/docker-compose.yml` — the compose file defining all services (`db`, `redis`, `texoid`, `pdfoid`, `mathoid`, `base`, `site`, `celery`, `bridged`, `wsevent`, `nginx`).
 - `dmoj/base/Dockerfile` — shared base image (Python deps, Node for sass/postcss) that `site`, `celery`, and `bridged` all build `FROM`.
 - `dmoj/{site,celery,bridged,wsevent,mathoid,pdfoid,texoid}/Dockerfile` — per-service images.
-- `dmoj/judge-tier3-1/Dockerfile`, `dmoj/judge-tier3-1/judge.yml` — the judge (sandboxed code execution) service, built `FROM` the pre-built `areslolxd/runtimes-tier3:karel` base image (already contains judge-server and the karel/rekarel compiler). Connects outbound to `bridged:9999`. Add more judges with `./scripts/new_judge`.
 - `dmoj/environment/*.env` — env files (`mysql.env`, `mysql-admin.env`, `site.env`) consumed by `docker-compose.yml`. Contain secrets (DB passwords, Django `SECRET_KEY`) — never commit real values here.
 - `dmoj/nginx/conf.d/` — nginx site config; `server_name` must be set here for production.
 - `dmoj/scripts/` — operational helper scripts (see below), all designed to be run from the repo root (they `cd` into `dmoj/` internally).
@@ -31,13 +30,6 @@ All scripts in `dmoj/scripts/` are run from the `dmoj/` directory (e.g. `cd dmoj
 - `./scripts/enter_site` — open a bash shell inside the running `site` container.
 - `docker compose up -d` — start the full stack.
 - Loading initial fixtures (first-time only): `./scripts/manage.py loaddata navbar`, `./scripts/manage.py loaddata language_small`, `./scripts/manage.py loaddata demo`.
-- `./scripts/register_judge <judge-dir>` — register a judge (e.g. `judge-tier3-1`) with the site and write its `id`/`key` into `judge.yml`.
-- `./scripts/judge_status` — list registered judges and their online status.
-- `./scripts/new_judge <name> [template]` — scaffold a new judge directory from an existing one.
-- `./scripts/doctor` — full-stack read-only health check; exits non-zero if any check fails.
-- `./scripts/update` — pull the latest `dmoj/repo` commit, rebuild dependent images, and migrate.
-- `./scripts/backup_db [path]` / `./scripts/restore_db <path>` — dump/restore the database.
-- `./scripts/logs <service>` — tail a service's logs.
 
 ### Updating after changes
 
@@ -53,5 +45,5 @@ All scripts in `dmoj/scripts/` are run from the `dmoj/` directory (e.g. `cd dmoj
 - `nginx` fronts everything: serves static assets from the `assets` volume, proxies uwsgi to `site:8000`, and proxies websocket traffic to `wsevent`. It depends on `site` and `wsevent` being up, and must be restarted after those services restart (it caches DNS — see README "502 Bad Gateway" note).
 - `mathoid`, `pdfoid`, `texoid` are independent rendering microservices reached over the internal `site` Docker network at fixed hostnames/ports (`mathoid:10044`, `pdfoid:8888`, `texoid:8888`), configured via `local_settings.py` (`MATHOID_URL`, `DMOJ_PDF_PDFOID_URL`, `TEXOID_URL`).
 - Shared named volumes (`assets`, `pdfcache`, `datacache`, `cache`) let `site`, `celery`, `bridged`, and `nginx` share generated content (static assets, PDF/user-data caches, mathoid/texoid render caches) without direct network calls.
-- Three Docker networks isolate concerns: `db` (site/celery/bridged/db), `site` (internal service-to-service), `nginx` (public-facing, only services nginx proxies to). Judge instances (e.g. `judge-tier3-1`) are on `site` only — this is the minimum needed to reach `bridged`, but since Docker networks aren't per-pair, a judge (running untrusted submitted code) can also reach `mathoid`/`pdfoid`/`texoid`/`wsevent`/`site` on that same network. This is inherent to the bridged architecture and accepted as a known, documented risk rather than something to fix.
+- Three Docker networks isolate concerns: `db` (site/celery/bridged/db), `site` (internal service-to-service), `nginx` (public-facing, only services nginx proxies to).
 - `local_settings.py` is the primary place to change DMOJ site behavior (feature flags, external service URLs, email backend, judge bridge address/port, logging, etc.) — it's a Django settings overlay read via env vars defined in `dmoj/environment/site.env` and `mysql.env`.
