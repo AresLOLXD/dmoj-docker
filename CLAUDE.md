@@ -15,7 +15,7 @@ Docker Compose setup that runs a self-hosted clone of the [DMOJ online judge](ht
 - `dmoj/environment/*.env` — env files (`mysql.env`, `mysql-admin.env`, `site.env`) consumed by `docker-compose.yml`. Contain secrets (DB passwords, Django `SECRET_KEY`) — never commit real values here.
 - `dmoj/nginx/conf.d/` — nginx site config; `server_name` must be set here for production.
 - `dmoj/scripts/` — operational helper scripts (see below), all designed to be run from the repo root (they `cd` into `dmoj/` internally).
-- `dmoj/repo/` — git submodule, the actual DMOJ Django application (`DMOJ/online-judge`).
+- `dmoj/repo/` — git submodule, the actual DMOJ Django application (fork: `AresLOLXD/online-judge`).
 - `config.js`, `local_settings.py`, `uwsgi.ini` (repo root) — templates that `scripts/initialize` moves into the submodule (`repo/websocket/config.js`, `repo/dmoj/local_settings.py`, `repo/uwsgi.ini`) during first-time setup. Edit these root copies, not files inside `repo/`, since `repo/` is a submodule.
 
 ## Common commands
