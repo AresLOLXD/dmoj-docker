@@ -1,0 +1,29 @@
+#!/bin/bash
+cd $(dirname $(dirname $0)) || exit
+
+echo "== Updating dmoj/repo submodule =="
+git -C .. submodule update --remote --merge dmoj/repo
+if [ $? -ne 0 ]; then
+    echo "Error: submodule update failed" 1>&2
+    exit 1
+fi
+
+echo ""
+echo "== Rebuilding base, site, celery, bridged, wsevent =="
+docker compose up -d --build base site celery bridged wsevent
+if [ $? -ne 0 ]; then
+    echo "Error: rebuild failed" 1>&2
+    exit 1
+fi
+
+echo ""
+echo "== Running migrations =="
+./scripts/migrate
+if [ $? -ne 0 ]; then
+    echo "Error: migration failed" 1>&2
+    exit 1
+fi
+
+echo ""
+echo "Update complete."
+echo "If static files changed upstream, run: ./scripts/copy_static"
