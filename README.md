@@ -69,6 +69,31 @@ If your static files ever change, you will need to rebuild them:
 $ ./scripts/copy_static
 ```
 
+### Scripts
+
+In addition to the scripts already covered above (`migrate`, `copy_static`,
+`manage.py`, `enter_site`, `initialize`), the following are available under
+`dmoj/scripts/`:
+
+- `register_judge <judge-dir>` — registers a judge (e.g. `judge-tier3-1`) in
+  the site's database and writes the generated `id`/`key` into its
+  `judge.yml`.
+- `judge_status` — lists all registered judges and whether they're online.
+- `new_judge <name> [template]` — scaffolds a new judge directory from an
+  existing one (default template `judge-tier3-1`) and prints the
+  `docker-compose.yml` block to add.
+- `doctor` — runs a full read-only health check across every service
+  (containers, Django, DB, Redis, bridged, judges, static assets, nginx,
+  wsevent, mathoid/pdfoid/texoid) and exits non-zero if anything's wrong.
+- `update` — pulls the latest `dmoj/repo` submodule commit, rebuilds the
+  dependent images, and migrates. See [Updating The Site](#updating-the-site)
+  below for what this automates.
+- `backup_db [output-path]` — dumps the database to a timestamped `.sql`
+  file under `backups/` (or the given path).
+- `restore_db <path>` — restores the database from a `.sql` file, after
+  confirming with a `yes` prompt.
+- `logs <service>` — `docker compose logs -f --tail=100 <service>`.
+
 ### Updating The Site
 Updating various sections of the site requires different images to be rebuilt.
 
@@ -112,6 +137,23 @@ server {
 ```
 
 In this case, the port that the Nginx instance in the Docker container is published to would need to be modified to `10080`.
+
+### Setting up a judge
+
+The judge (`judge-tier3-1`) needs to be registered with the site before it
+can connect to `bridged`. Checklist:
+
+- [ ] `docker compose build judge-tier3-1`
+- [ ] `docker compose up -d site` and `./scripts/migrate` (if not already running)
+- [ ] `./scripts/register_judge judge-tier3-1`
+- [ ] `docker compose up -d --build judge-tier3-1`
+- [ ] `./scripts/judge_status` (or `./scripts/doctor`) to confirm it shows `online: True`
+- [ ] Submit the `demo` fixture's sample problem and confirm it gets graded by this judge
+
+To add another judge instance (e.g. a second tier-3 judge for capacity), use
+`./scripts/new_judge <name>` to scaffold the directory and print the
+`docker-compose.yml` block to add, then follow the same checklist above with
+the new judge's name.
 
 ## Common Errors
 ### 502 Bad Gateway
