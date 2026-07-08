@@ -44,6 +44,10 @@ services:
     init: true
     restart: unless-stopped
     networks: [site]
+    # SYS_ADMIN is required because pdfoid does not pass --no-sandbox to
+    # Chrome (see DMOJ/pdfoid's backends/direct.py) — Chrome's own internal
+    # sandbox is active and needs this capability. Mitigated by pdfoid
+    # running as a non-root user (see pdfoid/Dockerfile's `USER pdfoid`).
     cap_add:
       - SYS_ADMIN
   mathoid:
