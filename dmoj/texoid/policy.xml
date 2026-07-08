@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policymap>
+  <!-- Resource limits: defense-in-depth against malformed/oversized input -->
+  <policy domain="resource" name="memory" value="512MiB"/>
+  <policy domain="resource" name="map" value="512MiB"/>
+  <policy domain="resource" name="width" value="16KP"/>
+  <policy domain="resource" name="height" value="16KP"/>
+  <policy domain="resource" name="area" value="128MB"/>
+  <policy domain="resource" name="disk" value="1GiB"/>
+
+  <!-- Block @filename indirection (classic ImageTragick vector) -->
+  <policy domain="path" rights="none" pattern="@*"/>
+
+  <!-- Deny the coders/delegates texoid's pipeline never uses -->
+  <policy domain="coder" rights="none" pattern="PS"/>
+  <policy domain="coder" rights="none" pattern="PS2"/>
+  <policy domain="coder" rights="none" pattern="PS3"/>
+  <policy domain="coder" rights="none" pattern="EPS"/>
+  <policy domain="coder" rights="none" pattern="PDF"/>
+  <policy domain="coder" rights="none" pattern="XPS"/>
+  <policy domain="coder" rights="none" pattern="MSL"/>
+  <policy domain="coder" rights="none" pattern="MVG"/>
+  <policy domain="coder" rights="none" pattern="TEXT"/>
+  <policy domain="coder" rights="none" pattern="SHOW"/>
+  <policy domain="coder" rights="none" pattern="URL"/>
+  <policy domain="coder" rights="none" pattern="HTTP"/>
+  <policy domain="coder" rights="none" pattern="HTTPS"/>
+  <policy domain="coder" rights="none" pattern="EPHEMERAL"/>
+  <policy domain="coder" rights="none" pattern="MPEG"/>
+
+  <!-- Explicitly allow only what texoid's pipeline actually uses -->
+  <policy domain="coder" rights="read" pattern="SVG"/>
+  <policy domain="coder" rights="read|write" pattern="PNG"/>
+</policymap>
