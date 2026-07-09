@@ -3,6 +3,18 @@ DMOJ Docker [![Build Status](https://github.com/Ninjaclasher/dmoj-docker/workflo
 
 This repository contains the Docker files to run a clone of the [DMOJ site](https://github.com/DMOJ/online-judge), using the [AresLOLXD/online-judge](https://github.com/AresLOLXD/online-judge) fork for `dmoj/repo`. It configures some additional services, such as mathoid, pdfoid, and texoid.
 
+> This fork of [AresLOLXD/online-judge](https://github.com/AresLOLXD/online-judge)
+> is built for the Olimpiada Mexicana de Informática (OMI) and ships
+> preloaded with Karel language support (see "Setting up a judge" below).
+>
+> **Legal note:** this fork inherits the GNU AGPLv3 license from
+> `DMOJ/online-judge` (see `dmoj/repo/LICENSE`). AGPL §13 requires that a
+> modified version run as a network service make the corresponding source
+> available to its users. As of this writing, the site does not expose a
+> link to the source actually running (the footer only links to
+> `dmoj.ca`). This is a known compliance gap, tracked here as a pending
+> item — not yet fixed.
+
 ## Installation
 
 First, [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) must be installed. Installation instructions can be found on their respective websites.
