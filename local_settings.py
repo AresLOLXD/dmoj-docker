@@ -307,3 +307,10 @@ DMOJ_RESOURCES = '/assets/resources/'
 
 MEDIA_ROOT = '/media/'
 MEDIA_URL = '/media/'
+
+# Cloudflare Turnstile anti-bot verification on registration (optional).
+# Uncomment and fill in both values to enable — the registration form
+# only shows the challenge if TURNSTILE_SECRET_KEY is set.
+# Get a sitekey/secret pair at https://dash.cloudflare.com/?to=/:account/turnstile
+#TURNSTILE_SITE_KEY = '<site key>'
+#TURNSTILE_SECRET_KEY = '<secret key>'
