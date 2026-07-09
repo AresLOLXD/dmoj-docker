@@ -10,10 +10,8 @@ This repository contains the Docker files to run a clone of the [DMOJ site](http
 > **Legal note:** this fork inherits the GNU AGPLv3 license from
 > `DMOJ/online-judge` (see `dmoj/repo/LICENSE`). AGPL §13 requires that a
 > modified version run as a network service make the corresponding source
-> available to its users. As of this writing, the site does not expose a
-> link to the source actually running (the footer only links to
-> `dmoj.ca`). This is a known compliance gap, tracked here as a pending
-> item — not yet fixed.
+> available to its users. The site footer now includes a "source code"
+> link pointing to this fork to satisfy that requirement.
 
 ## Installation
 
