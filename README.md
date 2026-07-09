@@ -20,6 +20,7 @@ Initialize the setup by moving the configuration files into the submodule and by
 ```sh
 $ ./scripts/initialize
 ```
+This also creates `dmoj/environment/mysql.env`, `mysql-admin.env`, and `site.env` from their `.env.example` templates (these real files hold secrets and are gitignored — only the `.example` templates are tracked).
 
 Configure the environment variables in the files in `dmoj/environment/`. In particular, set the MYSQL passwords in `mysql.env` and `mysql-admin.env`, and the host and secret key in `site.env`. Also, configure the `server_name` directive in `dmoj/nginx/conf.d/nginx.conf`.
 
@@ -108,15 +109,33 @@ If only the source code is modified, a restart is sufficient:
 $ docker compose restart site celery bridged wsevent
 ```
 
-### Multiple Nginx Instances
+### TLS / HTTPS
 
-The `docker-compose.yml` configures Nginx to publish to port 80. If you have another Nginx instance on your host machine, you may want to change the port and proxy pass instead.
+The `nginx` container does not terminate TLS itself — it only listens on
+plain HTTP, published to `127.0.0.1:8080` on the host (not `0.0.0.0`, and
+not port 80: this stack assumes an external TLS-terminating reverse proxy
+running on the same host, e.g. Cloudflare Tunnel or a host-level Caddy/
+Nginx instance, in front of it).
 
-For example, a possible Nginx configuration file on your host machine would be:
+That external proxy must forward to `http://127.0.0.1:8080` and set the
+`X-Forwarded-Proto: https` header — the `site` container trusts that
+header (`SECURE_PROXY_SSL_HEADER` in `local_settings.py`) to mark
+cookies as HTTPS-only. Without a proxy in front of it, the site is not
+reachable from outside the host at all — this is intentional, not a bug
+to work around by publishing `nginx` more broadly.
+
+If you need a different host port (e.g. `127.0.0.1:8080` conflicts with
+something else already running), change the `ports:` mapping under the
+`nginx` service in `docker-compose.yml` and point your external proxy at
+the new port instead.
+
+For example, a possible host-level Nginx configuration acting as that
+external proxy would be:
 ```
 server {
-    listen 80;
-    listen [::]:80;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    # ... your certificate directives here ...
 
     add_header X-UA-Compatible "IE=Edge,chrome=1";
     add_header X-Content-Type-Options nosniff;
@@ -129,14 +148,12 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
 
-        proxy_pass http://127.0.0.1:10080/;
+        proxy_pass http://127.0.0.1:8080/;
     }
 }
 ```
-
-In this case, the port that the Nginx instance in the Docker container is published to would need to be modified to `10080`.
 
 ### Setting up a judge
 
