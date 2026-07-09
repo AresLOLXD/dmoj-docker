@@ -149,7 +149,7 @@ services:
     image: nginx:alpine
     restart: always
     ports:
-      - 80:80
+      - 127.0.0.1:8080:80
     volumes:
       - assets:/assets/
       - pdfcache:/pdfcache/
