@@ -286,10 +286,13 @@ LOGGING = {
 # You may add whatever django configuration you would like here.
 # Do try to keep it separate so you can quickly patch in new settings.
 
-# Uncomment if you're using HTTPS to ensure CSRF and session cookies are
-# sent only with an HTTPS connection.
-#CSRF_COOKIE_SECURE = True
-#SESSION_COOKIE_SECURE = True
+# This stack assumes an external TLS-terminating proxy (e.g. Cloudflare
+# Tunnel, Caddy) runs on the same host and forwards to nginx on
+# 127.0.0.1:8080, setting X-Forwarded-Proto: https. Without such a proxy,
+# the site is not reachable from outside the host at all (intentional).
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
 
 REGISTRATION_OPEN = False
 DMOJ_RATING_COLORS = True
