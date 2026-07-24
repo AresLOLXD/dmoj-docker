@@ -2,15 +2,17 @@ FROM python:3.11-slim-bookworm
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        curl gnupg git unzip xvfb libxi6 libgconf-2-4 exiftool && \
+        curl gnupg git unzip xvfb libxi6 libgconf-2-4 exiftool jq && \
     curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg && \
     echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list && \
     sed -i 's/^Components: main$/& contrib non-free/' /etc/apt/sources.list.d/debian.sources && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        google-chrome-stable=150.0.7871.100-1 fonts-noto ttf-mscorefonts-installer && \
+        google-chrome-stable fonts-noto ttf-mscorefonts-installer && \
     rm -rf /var/lib/apt/lists/* && \
-    curl -fsSL https://storage.googleapis.com/chrome-for-testing-public/150.0.7871.49/linux64/chromedriver-linux64.zip -o chromedriver_linux64.zip && \
+    CHROMEDRIVER_URL=$(curl -fsSL https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json | \
+        jq -r '.channels.Stable.downloads.chromedriver[] | select(.platform=="linux64") | .url') && \
+    curl -fsSL "$CHROMEDRIVER_URL" -o chromedriver_linux64.zip && \
     unzip chromedriver_linux64.zip && \
     mv chromedriver-linux64/chromedriver /usr/bin/chromedriver && \
     chmod +x /usr/bin/chromedriver && \
