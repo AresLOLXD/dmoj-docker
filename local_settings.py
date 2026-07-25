@@ -147,6 +147,12 @@ BRIDGED_JUDGE_ADDRESS = [('0.0.0.0', 9999)]
 # The bridged daemon bind address and port to communicate with the site.
 BRIDGED_DJANGO_ADDRESS = [('0.0.0.0', 9998)]
 
+# site's judgeapi.py connects to this address to submit judging requests
+# to bridged. It falls back to BRIDGED_DJANGO_ADDRESS[0] if unset, which
+# is wrong once that's bound to 0.0.0.0 (that's a bind address, not
+# something a client can connect to) — set it explicitly instead.
+BRIDGED_DJANGO_CONNECT = ('bridged', 9998)
+
 ## DMOJ features.
 # Set to True to enable full-text searching for problems.
 ENABLE_FTS = True
