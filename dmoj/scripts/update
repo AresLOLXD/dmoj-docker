@@ -17,6 +17,17 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
+echo "== Restarting site, celery, bridged, wsevent =="
+# repo/ is mounted read-only at runtime rather than baked into the image, so
+# a --build above that doesn't change the image (e.g. only repo/ source
+# changed) won't make compose restart already-running containers on its own.
+docker compose restart site celery bridged wsevent
+if [ $? -ne 0 ]; then
+    echo "Error: restart failed" 1>&2
+    exit 1
+fi
+
+echo ""
 echo "== Running migrations =="
 ./scripts/migrate
 if [ $? -ne 0 ]; then
