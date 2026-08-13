@@ -23,7 +23,7 @@ if [ "$CONFIRM" != "yes" ]; then
     exit 1
 fi
 
-docker compose exec -T $COMPOSE_EXEC_FLAGS db mysql -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < "$INPUT"
+docker compose exec -T $COMPOSE_EXEC_FLAGS db mariadb -u root -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" < "$INPUT"
 
 if [ $? -eq 0 ]; then
     echo "Restore complete."
