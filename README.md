@@ -32,7 +32,14 @@ $ ./scripts/initialize
 ```
 This also creates `dmoj/environment/mysql.env`, `mysql-admin.env`, and `site.env` from their `.env.example` templates (these real files hold secrets and are gitignored — only the `.example` templates are tracked).
 
-Configure the environment variables in the files in `dmoj/environment/`. In particular, set the MYSQL passwords in `mysql.env` and `mysql-admin.env`, and the host and secret key in `site.env`. Also, configure the `server_name` directive in `dmoj/nginx/conf.d/nginx.conf`.
+Configure the environment variables in the files in `dmoj/environment/`. The required values are:
+- `mysql.env`: `MYSQL_PASSWORD` (and `MYSQL_DATABASE`/`MYSQL_USER`, which default to `dmoj` and rarely need changing).
+- `mysql-admin.env`: `MYSQL_ROOT_PASSWORD`.
+- `site.env`: `HOST` (your domain), `SECRET_KEY` (a random Django secret key), and `REDIS_PASSWORD` (a random password — also required by the `redis` service itself, since it reads this same file).
+
+`DEBUG` in `site.env` defaults to `0` and should stay that way outside of local development.
+
+Also, configure the `server_name` directive in `dmoj/nginx/conf.d/nginx.conf`.
 
 Next, build the images:
 ```sh
@@ -119,6 +126,14 @@ If only the source code is modified, a restart is sufficient:
 $ docker compose restart site celery bridged wsevent
 ```
 
+### Docker Networks
+
+Three Docker networks isolate concerns, so a compromise of one service doesn't automatically reach everything else:
+
+- **`db`** — `db`, `site`, `celery`, `bridged`. Only these four ever need to reach MariaDB directly.
+- **`site`** — internal service-to-service traffic: `site`, `celery`, `bridged`, `redis`, `mathoid`, `pdfoid`, `texoid`, `wsevent`, and every judge (e.g. `judge-tier3-1`). Judges are here because it's the minimum needed to reach `bridged:9999`; note this also means a judge can reach `mathoid`/`pdfoid`/`texoid`/`wsevent`/`site` on this same network, since Docker networks aren't scoped per-pair — this is a known, accepted tradeoff of the bridged architecture, not a bug.
+- **`nginx`** — public-facing; only services `nginx` actually proxies to (`site`, `wsevent`). Notably, `bridged` and `db` are never on this network — nginx has no path to them at all.
+
 ### TLS / HTTPS
 
 The `nginx` container does not terminate TLS itself — it only listens on
@@ -201,5 +216,23 @@ To add another judge instance (e.g. a second tier-3 judge for capacity), use
 the new judge's name.
 
 ## Common Errors
+
+Start with `./scripts/doctor` for any of these — it runs a full read-only health check across every service and usually points at the failing piece directly.
+
 ### 502 Bad Gateway
 Ensure that you also restart the Nginx container if you restart the site container as Nginx caches DNS queries. Otherwise, Nginx will try to hit the old IP, causing a 502 Bad Gateway. See [this issue](https://github.com/docker/compose/issues/3314) for more information.
+
+### A judge shows offline
+Run `./scripts/judge_status` to confirm. Then check, in order:
+- `docker compose ps <judge-dir>` — is the container even running?
+- `./scripts/logs <judge-dir>` and `./scripts/logs bridged` — the judge logs a connection error if it can't reach `bridged:9999`; `bridged`'s logs show whether it received (and accepted) the connection.
+- Was the judge actually registered? `./scripts/register_judge <judge-dir>` writes the `id`/`key` bridged expects into `judge.yml` — a judge built before registration, or re-registered without rebuilding, will authenticate with a stale key.
+
+### Migrations fail
+`./scripts/migrate` runs Django's `manage.py migrate` inside the `site` container, so its output is the real Django/MySQL error — read it first. Common causes: `mysql.env`/`mysql-admin.env` not configured yet, or the `db` container not up yet (`docker compose up -d db`, wait a few seconds, then retry). Migrations are not automatically rolled back on failure; if you're mid-`update`, do not restart `site`/`celery`/`bridged` on the new code until `migrate` succeeds cleanly, since they'd be running against a partially-migrated schema.
+
+### A service won't start
+Check `docker compose ps` for its actual state, then `./scripts/logs <service>`. Start-up order matters for a few services: `db` and `redis` must be healthy before `site`/`celery`/`bridged` can connect, and `base` must build successfully before anything that extends it (`site`, `celery`, `bridged`) will build at all — a `base` build failure surfaces as a build error on those three, not on `base` itself if you only ran `docker compose up`.
+
+### Static files look wrong or missing (CSS, JS, translations)
+Re-run `./scripts/copy_static` — see [Managing Static Files](#managing-static-files). This is needed after any change to static assets, and after any `update` that touched them, since static files aren't rebuilt automatically.
