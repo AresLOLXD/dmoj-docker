@@ -1,2 +1,5 @@
 CLAUDE.local.md
 dmoj/environment/*.env
+dmoj/database/
+dmoj/backups/
+dmoj/judge-*/judge.yml
