@@ -17,7 +17,7 @@ x-site-static-base: &site-static-base
 services:
   db:
     container_name: dmoj_mysql
-    image: mariadb
+    image: mariadb:12.3
     restart: always
     volumes:
       - ./database/:/var/lib/mysql/
@@ -25,8 +25,10 @@ services:
     networks: [db]
   redis:
     container_name: dmoj_redis
-    image: redis:alpine
+    image: redis:8.8-alpine
     restart: always
+    env_file: [environment/site.env]
+    command: sh -c 'exec redis-server --requirepass "$$REDIS_PASSWORD"'
     networks: [site]
   texoid:
     build:

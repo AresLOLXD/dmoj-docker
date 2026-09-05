@@ -25,10 +25,11 @@ INSTALLED_APPS += ()
 
 # Caching. You can use memcached or redis instead.
 # Documentation: <https://docs.djangoproject.com/en/1.11/topics/cache/>
+REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', '')
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://redis:6379/1',
+        'LOCATION': f'redis://:{REDIS_PASSWORD}@redis:6379/1',
     }
 }
 
@@ -304,8 +305,8 @@ REGISTRATION_OPEN = False
 DMOJ_RATING_COLORS = True
 X_FRAME_OPTIONS = 'DENY'
 
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_BROKER_URL = f'redis://:{REDIS_PASSWORD}@redis:6379/0'
+CELERY_RESULT_BACKEND = f'redis://:{REDIS_PASSWORD}@redis:6379/0'
 
 DMOJ_PROBLEM_DATA_ROOT = '/problems/'
 
