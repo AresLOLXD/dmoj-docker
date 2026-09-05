@@ -19,6 +19,11 @@ services:
     container_name: dmoj_mysql
     image: mariadb:12.3
     restart: always
+    command:
+      - --innodb-buffer-pool-size=256M
+      - --max-connections=50
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
       - ./database/:/var/lib/mysql/
     env_file: [environment/mysql.env, environment/mysql-admin.env]
