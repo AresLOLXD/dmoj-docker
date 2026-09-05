@@ -142,9 +142,8 @@ services:
     init: true
     restart: unless-stopped
     volumes:
-      - ./repo/:/app/site/
+      - ./repo/:/app/site/:ro
     working_dir: /app/site
-    env_file: [environment/mysql.env, environment/site.env]
     networks: [site, nginx]
   nginx:
     container_name: dmoj_nginx
