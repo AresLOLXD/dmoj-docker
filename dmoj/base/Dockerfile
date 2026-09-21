@@ -2,6 +2,13 @@ FROM node:24-bookworm AS node
 
 FROM python:3.11-slim-bookworm
 
+# Force Python's UTF-8 mode (PEP 540) so file reads without an explicit
+# encoding (e.g. dmoj/settings.py's `open(...local_settings.py...)`) don't
+# fall back to the container's locale, which defaults to ASCII on Docker
+# (unlike some podman base images) and breaks on local_settings.py's
+# non-ASCII (Spanish) comments/strings.
+ENV PYTHONUTF8=1
+
 RUN apt-get update && \
     apt-get install -y \
         git gcc g++ make curl gettext wget \

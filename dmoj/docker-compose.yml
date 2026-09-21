@@ -135,6 +135,8 @@ services:
     build:
       context: .
       dockerfile: ./judge-tier3-1/Dockerfile
+      args:
+        RUNTIME_TIER3_IMAGE: ${RUNTIME_TIER3_IMAGE:-areslolxd/runtimes-tier3:karel}
     image: areslolxd/dmoj-judge-tier3
     volumes:
       - ./problems/:/problems/:ro
