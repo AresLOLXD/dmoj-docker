@@ -30,3 +30,33 @@ schema: spec-driven
 #     archive:
 #       guidance:
 #         - Summarize the archive outcome before finishing
+
+# --- Project configuration ---
+context: |
+  Docker Compose infrastructure for a self-hosted DMOJ online judge. The Django app
+  is the `dmoj/repo` submodule (fork AresLOLXD/online-judge): app changes belong in
+  that repo, not here. This repo owns Dockerfiles, compose, nginx, `dmoj/scripts/`
+  and the site config templates.
+  Local host is rootless podman; production is rootful Docker behind a TLS proxy.
+  There is no test suite in this repo: a "test" is an executable check
+  (`docker compose config -q`, `bash -n` / `shellcheck` on `dmoj/scripts/`, building
+  the images, `./scripts/doctor` against a running stack). The Django suite runs in the fork.
+  Security posture is deliberate (read-only `repo/` mounts, isolated networks, no TLS
+  in nginx): do not weaken it without saying so in the proposal.
+  Artifacts, code, comments and commits are written in English; commits use
+  Conventional Commits. Never connect to a remote server: give the commands instead.
+
+rules:
+  proposal:
+    - List non-goals explicitly ("what we would not build")
+  specs:
+    - Each Scenario names the executable check that proves it (command and expected result)
+
+operations:
+  apply:
+    guidance:
+      - Detailed plans from superpowers:writing-plans live in openspec/changes/<change>/plans/ and detail a group of tasks; tick checkboxes in tasks.md only, never in a plan.
+      - If behavior diverges from a delta spec, stop and revise the spec (/opsx:update) or ask before continuing.
+  archive:
+    guidance:
+      - Do not archive until the checks pass and every Scenario maps to a check.
