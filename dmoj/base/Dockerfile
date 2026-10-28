@@ -1,6 +1,6 @@
 FROM node:24-bookworm AS node
 
-FROM python:3.11-slim-bookworm
+FROM python:3.13-slim-bookworm
 
 # Force Python's UTF-8 mode (PEP 540) so file reads without an explicit
 # encoding (e.g. dmoj/settings.py's `open(...local_settings.py...)`) don't
@@ -25,5 +25,10 @@ RUN pip3 install \
         pymysql==1.2.0 mysqlclient==2.2.8 websocket-client==1.9.0 \
         uwsgi==2.0.31 django-redis==5.4.0 redis==5.2.1
 
-COPY repo/requirements.txt .
+COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /bin/uv
+
+# shortcut: export the lock and install it with pip instead of `uv sync`, which would
+# create an off-PATH .venv or uninstall the pip packages above; revisit if uv gains --system sync.
+COPY repo/pyproject.toml repo/uv.lock repo/.python-version ./
+RUN uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt
 RUN pip3 install -r requirements.txt
