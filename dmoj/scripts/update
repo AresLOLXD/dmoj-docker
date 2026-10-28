@@ -10,7 +10,9 @@ fi
 
 echo ""
 echo "== Rebuilding base, site, celery, bridged, wsevent =="
-docker compose up -d --build base site celery bridged wsevent
+# base first: site/celery/bridged are FROM base:latest but compose doesn't know
+# that, so building them in the same step can pick up the previous base image.
+docker compose build base && docker compose up -d --build site celery bridged wsevent
 if [ $? -ne 0 ]; then
     echo "Error: rebuild failed" 1>&2
     exit 1

@@ -41,7 +41,7 @@ All scripts in `dmoj/scripts/` are run from the `dmoj/` directory (e.g. `cd dmoj
 
 ### Updating after changes
 
-- If a base dependency changed (base image), rebuild the dependent services: `docker compose up -d --build base site celery bridged wsevent`.
+- If a base dependency changed (base image), rebuild `base` first, then the dependent services: `docker compose build base && docker compose up -d --build site celery bridged wsevent`. Don't put `base` in the same build as them — compose doesn't know they're `FROM base:latest`, so they can pick up the old base.
 - If only source code (in `repo/`) changed: `docker compose restart site celery bridged wsevent` is enough.
 - If static files changed: rerun `./scripts/copy_static`.
 

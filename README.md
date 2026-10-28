@@ -117,8 +117,10 @@ Updating various sections of the site requires different images to be rebuilt.
 
 If any prerequisites were modified, you will need to rebuild most of the images:
 ```sh
-$ docker compose up -d --build base site celery bridged wsevent
+$ docker compose build base
+$ docker compose up -d --build site celery bridged wsevent
 ```
+Build `base` in its own step: `site`, `celery` and `bridged` are built `FROM` it, but compose does not know that, so building them together can pick up the previous `base` image.
 If the static files are modified, read the section on [Managing Static Files](#managing-static-files).
 
 If only the source code is modified, a restart is sufficient:
