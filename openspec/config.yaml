@@ -48,9 +48,9 @@ context: |
 
 rules:
   proposal:
-    - List non-goals explicitly ("what we would not build")
+    - List non-goals explicitly in a "## Non-goals (what we would not build)" section after "What Changes" (the template has none)
   specs:
-    - Each Scenario names the executable check that proves it (command and expected result)
+    - Each Scenario ends with a "- **CHECK** <command and expected result>" line naming the executable check that proves it
 
 operations:
   apply:
