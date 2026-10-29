@@ -46,7 +46,9 @@ if [ $? -ne 0 ]; then
     echo "site, celery and bridged are STOPPED and were not restored. Backup: $BACKUP_PATH" 1>&2
     echo "1. git -C repo checkout $PREV_SHA" 1>&2
     echo "2. ./scripts/restore_db $BACKUP_PATH" 1>&2
-    echo "3. docker compose up -d site celery bridged wsevent" 1>&2
+    echo "3. docker compose build base && docker compose build site celery bridged wsevent" 1>&2
+    echo "4. docker compose up -d site celery bridged wsevent" 1>&2
+    echo "Note: restore_db only replaces tables that are in the backup; if a retry reports that a table already exists, drop the tables the failed migration created." 1>&2
     exit 1
 fi
 

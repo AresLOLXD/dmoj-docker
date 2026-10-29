@@ -75,7 +75,7 @@ if [ "$STATUS" -ne 0 ] && has_call "docker compose stop site celery bridged" \
     && ! has_call "up -d" && ! has_call restart \
     && [ -n "$BACKUP" ] && has_out "$BACKUP" && has_out abc1234 \
     && has_out "git -C repo checkout abc1234" && has_out "./scripts/restore_db" \
-    && has_out "docker compose up -d"; then pass "$NAME"; else fail "$NAME"; fi
+    && has_out "docker compose build base" && has_out "docker compose up -d"; then pass "$NAME"; else fail "$NAME"; fi
 
 NAME="success prints the backup path"
 run_update
