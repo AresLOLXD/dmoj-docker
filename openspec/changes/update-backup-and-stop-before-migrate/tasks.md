@@ -8,7 +8,7 @@
 
 - [ ] 2.1 In `dmoj/scripts/update`, capture the previous submodule commit and take the backup first, aborting with exit 1 before the submodule update when it fails. Verify: Scenario "A failed backup aborts before anything changes".
 - [ ] 2.2 Replace the rebuild, restart and migrate steps with: `docker compose build base`, `docker compose build site celery bridged wsevent`, `docker compose stop site celery bridged`, the one-off migration (`docker compose run --rm --no-deps $COMPOSE_EXEC_FLAGS --entrypoint python3 site manage.py migrate`), then `docker compose up -d site celery bridged wsevent` and `docker compose restart wsevent`. Verify: Scenario "Services are stopped before the migration and started after it".
-- [ ] 2.3 On a failed migration print the backup path, the previous commit and the three recovery commands, and exit 1 without starting anything. On success print the backup path and the `./scripts/restore_db` hint after "Update complete.". Verify: Scenarios "The recovery recipe is printed and nothing is restarted" and "The backup path is printed at the end".
+- [ ] 2.3 On a failed migration print the backup path, the previous commit and the four recovery commands (checkout, restore, rebuild, start), and exit 1 without starting anything. On success print the backup path and the `./scripts/restore_db` hint after "Update complete.". Verify: Scenarios "The recovery recipe is printed and nothing is restarted" and "The backup path is printed at the end".
 - [ ] 2.4 Verify the script as a whole: `bash -n dmoj/scripts/update`, `shellcheck dmoj/scripts/update` report no new findings, and `bash dmoj/tests/update.sh` prints four `PASS` lines and exits 0.
 
 ## 3. README
