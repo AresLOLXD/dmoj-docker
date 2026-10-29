@@ -103,9 +103,10 @@ In addition to the scripts already covered above (`migrate`, `copy_static`,
 - `doctor` — runs a full read-only health check across every service
   (containers, Django, DB, Redis, bridged, judges, static assets, nginx,
   wsevent, mathoid/pdfoid/texoid) and exits non-zero if anything's wrong.
-- `update` — pulls the latest `dmoj/repo` submodule commit, rebuilds the
-  dependent images, and migrates. See [Updating The Site](#updating-the-site)
-  below for what this automates.
+- `update` — backs up the database, pulls the latest `dmoj/repo` submodule
+  commit, rebuilds the dependent images, stops the app while it migrates, then
+  restarts it. See [Updating The Site](#updating-the-site) below for what this
+  automates.
 - `backup_db [output-path]` — dumps the database to a timestamped `.sql`
   file under `backups/` (or the given path).
 - `restore_db <path>` — restores the database from a `.sql` file, after
@@ -113,7 +114,16 @@ In addition to the scripts already covered above (`migrate`, `copy_static`,
 - `logs <service>` — `docker compose logs -f --tail=100 <service>`.
 
 ### Updating The Site
-Updating various sections of the site requires different images to be rebuilt.
+`./scripts/update` automates a full update. In order, it:
+
+1. records the current `dmoj/repo` commit and backs up the database to `backups/pre-update-<timestamp>.sql`, aborting before changing anything if the backup fails;
+2. updates the `dmoj/repo` submodule and rebuilds the images without restarting anything;
+3. stops `site`, `celery` and `bridged`, then runs `manage.py migrate` in a one-off container (`docker compose run`, since `site` is stopped);
+4. starts the services again only if the migration succeeded, and prints the backup path.
+
+`site`, `celery` and `bridged` are down while the migration runs, by design. To undo an update, restore the backup with `./scripts/restore_db backups/pre-update-<timestamp>.sql`. If the migration fails, see [Migrations fail](#migrations-fail). `update` does not rebuild static files; run `./scripts/copy_static` if they changed upstream.
+
+Updating various sections of the site by hand requires different images to be rebuilt.
 
 If any prerequisites were modified, you will need to rebuild most of the images:
 ```sh
@@ -231,7 +241,7 @@ Run `./scripts/judge_status` to confirm. Then check, in order:
 - Was the judge actually registered? `./scripts/register_judge <judge-dir>` writes the `id`/`key` bridged expects into `judge.yml` — a judge built before registration, or re-registered without rebuilding, will authenticate with a stale key.
 
 ### Migrations fail
-`./scripts/migrate` runs Django's `manage.py migrate` inside the `site` container, so its output is the real Django/MySQL error — read it first. Common causes: `mysql.env`/`mysql-admin.env` not configured yet, or the `db` container not up yet (`docker compose up -d db`, wait a few seconds, then retry). Migrations are not automatically rolled back on failure; if you're mid-`update`, do not restart `site`/`celery`/`bridged` on the new code until `migrate` succeeds cleanly, since they'd be running against a partially-migrated schema.
+`./scripts/migrate` runs Django's `manage.py migrate` inside the `site` container, so its output is the real Django/MySQL error — read it first. Common causes: `mysql.env`/`mysql-admin.env` not configured yet, or the `db` container not up yet (`docker compose up -d db`, wait a few seconds, then retry). Migrations are not automatically rolled back on failure. If the migration fails inside `./scripts/update`, `site`, `celery` and `bridged` are left stopped (so they never run on the new code against a partially-migrated schema), and the script prints the `backups/pre-update-<timestamp>.sql` path, the previous `dmoj/repo` commit and a recovery recipe: `git -C repo checkout <previous-commit>`, `./scripts/restore_db <backup>`, `docker compose build base && docker compose build site celery bridged wsevent`, then `docker compose up -d site celery bridged wsevent`. Nothing is restored automatically.
 
 ### A service won't start
 Check `docker compose ps` for its actual state, then `./scripts/logs <service>`. Start-up order matters for a few services: `db` and `redis` must be healthy before `site`/`celery`/`bridged` can connect, and `base` must build successfully before anything that extends it (`site`, `celery`, `bridged`) will build at all — a `base` build failure surfaces as a build error on those three, not on `base` itself if you only ran `docker compose up`.
