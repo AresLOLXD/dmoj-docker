@@ -82,6 +82,8 @@ run_update
 BACKUP=$(backup_path)
 TAIL=$(tail -n 5 "$TMP/out")
 if [ "$STATUS" -eq 0 ] && [ -n "$BACKUP" ] && [[ "$TAIL" == *"$BACKUP"* ]] \
-    && [[ "$TAIL" == *"./scripts/restore_db"* ]]; then pass "$NAME"; else fail "$NAME"; fi
+    && [[ "$TAIL" == *"./scripts/restore_db"* ]] \
+    && [[ "$TAIL" == *"docker compose stop site celery bridged"* ]] \
+    && [[ "$TAIL" == *"git -C repo checkout abc1234"* ]]; then pass "$NAME"; else fail "$NAME"; fi
 
 exit $RESULT

@@ -121,7 +121,7 @@ In addition to the scripts already covered above (`migrate`, `copy_static`,
 3. stops `site`, `celery` and `bridged`, then runs `manage.py migrate` in a one-off container (`docker compose run`, since `site` is stopped);
 4. starts the services again only if the migration succeeded, and prints the backup path.
 
-`site`, `celery` and `bridged` are down while the migration runs, by design. To undo an update, restore the backup with `./scripts/restore_db backups/pre-update-<timestamp>.sql`. If the migration fails, see [Migrations fail](#migrations-fail). `update` does not rebuild static files; run `./scripts/copy_static` if they changed upstream.
+`site`, `celery` and `bridged` are down while the migration runs, by design. To undo an update, stop the app first (`docker compose stop site celery bridged`), check out the previous commit (`git -C repo checkout <previous commit>`, printed at the start of the update), restore the backup (`./scripts/restore_db backups/pre-update-<timestamp>.sql`), then rebuild the images and start the services as described in [Migrations fail](#migrations-fail); restoring while the app runs on the new code is unsafe. If the migration fails, see [Migrations fail](#migrations-fail). `update` does not rebuild static files; run `./scripts/copy_static` if they changed upstream.
 
 Updating various sections of the site by hand requires different images to be rebuilt.
 

@@ -54,9 +54,9 @@ fi
 
 echo ""
 echo "== Starting site, celery, bridged, wsevent =="
-# repo/ is mounted read-only at runtime rather than baked into the image, so
-# containers started above keep running the old source until restarted. wsevent
-# is already running (it was not stopped), so restart it to pick up the new repo/.
+# repo/ is mounted read-only at runtime rather than baked into the image.
+# site/celery/bridged were stopped, so up -d starts them fresh; wsevent was never
+# stopped, so restart it to pick up the new repo/ mount.
 docker compose up -d site celery bridged wsevent && docker compose restart wsevent
 if [ $? -ne 0 ]; then
     echo "Error: start failed; the schema is already migrated. Fix the cause and run: docker compose up -d site celery bridged wsevent" 1>&2
@@ -67,4 +67,5 @@ echo ""
 echo "Update complete."
 echo "If static files changed upstream, run: ./scripts/copy_static"
 echo "Pre-update backup: $BACKUP_PATH"
-echo "To restore it: ./scripts/restore_db $BACKUP_PATH"
+echo "To roll back: docker compose stop site celery bridged; git -C repo checkout $PREV_SHA; ./scripts/restore_db $BACKUP_PATH"
+echo "then rebuild and start as in the README \"Migrations fail\" recipe."
