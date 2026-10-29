@@ -1,6 +1,17 @@
 #!/bin/bash
 cd $(dirname $(dirname $0)) || exit
 
+PREV_SHA=$(git -C repo rev-parse HEAD)
+BACKUP_PATH=backups/pre-update-$(date +%Y-%m-%d-%H%M%S).sql
+
+echo "== Backing up the database to $BACKUP_PATH (submodule at $PREV_SHA) =="
+./scripts/backup_db "$BACKUP_PATH"
+if [ $? -ne 0 ]; then
+    echo "Error: pre-update backup failed; nothing was changed" 1>&2
+    exit 1
+fi
+
+echo ""
 echo "== Updating dmoj/repo submodule =="
 git -C .. submodule update --init --recursive --remote --merge dmoj/repo
 if [ $? -ne 0 ]; then
@@ -12,31 +23,46 @@ echo ""
 echo "== Rebuilding base, site, celery, bridged, wsevent =="
 # base first: site/celery/bridged are FROM base:latest but compose doesn't know
 # that, so building them in the same step can pick up the previous base image.
-docker compose build base && docker compose up -d --build site celery bridged wsevent
+docker compose build base && docker compose build site celery bridged wsevent
 if [ $? -ne 0 ]; then
     echo "Error: rebuild failed" 1>&2
     exit 1
 fi
 
 echo ""
-echo "== Restarting site, celery, bridged, wsevent =="
-# repo/ is mounted read-only at runtime rather than baked into the image, so
-# a --build above that doesn't change the image (e.g. only repo/ source
-# changed) won't make compose restart already-running containers on its own.
-docker compose restart site celery bridged wsevent
+echo "== Stopping site, celery, bridged =="
+docker compose stop site celery bridged
 if [ $? -ne 0 ]; then
-    echo "Error: restart failed" 1>&2
+    echo "Error: stop failed" 1>&2
     exit 1
 fi
 
 echo ""
 echo "== Running migrations =="
-./scripts/migrate
+docker compose run --rm --no-deps $COMPOSE_EXEC_FLAGS --entrypoint python3 site manage.py migrate
 if [ $? -ne 0 ]; then
     echo "Error: migration failed" 1>&2
+    echo "" 1>&2
+    echo "site, celery and bridged are STOPPED and were not restored. Backup: $BACKUP_PATH" 1>&2
+    echo "1. git -C repo checkout $PREV_SHA" 1>&2
+    echo "2. ./scripts/restore_db $BACKUP_PATH" 1>&2
+    echo "3. docker compose up -d site celery bridged wsevent" 1>&2
+    exit 1
+fi
+
+echo ""
+echo "== Starting site, celery, bridged, wsevent =="
+# repo/ is mounted read-only at runtime rather than baked into the image, so
+# containers started above keep running the old source until restarted. wsevent
+# is already running (it was not stopped), so restart it to pick up the new repo/.
+docker compose up -d site celery bridged wsevent && docker compose restart wsevent
+if [ $? -ne 0 ]; then
+    echo "Error: start failed; the schema is already migrated. Fix the cause and run: docker compose up -d site celery bridged wsevent" 1>&2
     exit 1
 fi
 
 echo ""
 echo "Update complete."
 echo "If static files changed upstream, run: ./scripts/copy_static"
+echo "Pre-update backup: $BACKUP_PATH"
+echo "To restore it: ./scripts/restore_db $BACKUP_PATH"
