@@ -27,7 +27,9 @@ The fork's `dmoj/settings.py` defines `WEBAUTHN_RP_ID = None`. While it is falsy
 
 ## Risks / Trade-offs
 
-- [A key enrolled through another host (`127.0.0.1:8080`, a Tailscale name) does not work on the public hostname] -> README says to enrol only through the public hostname.
+- [Enrolment through another host (`127.0.0.1:8080`, a Tailscale name) is rejected: with `ALLOWED_HOSTS = [HOST]` those requests get a 400, and browsers refuse a relying-party id on an IP address or an unrelated domain] -> README says enrolment only works through the public hostname.
+- [Keys are bound to the exact `WEBAUTHN_RP_ID` string, so changing `HOST` (a domain move, a typo in `site.env`) has the same effect as unsetting it: every enrolled key stops working and key-only accounts are locked out] -> README and the template comment say so; keep TOTP until keys have been used for a while.
+- [An uppercase `HOST` passes `ALLOWED_HOSTS` but the relying-party id would not match the lowercase value browsers use, so enrolment fails with an opaque error] -> The template comment says "lowercase"; no `HOST.lower()` guard (found in review, deferred).
 - [Unsetting `WEBAUTHN_RP_ID` after keys exist locks out accounts whose only 2FA is a key, because keys have no scratch codes] -> README says to keep TOTP until keys have been used for a while.
 - [A new install with the placeholder `HOST` shows WebAuthn enabled but no key can be enrolled] -> Decision 2; the install needs a real `HOST` to serve anything.
 - [The agent cannot test the browser flow or a hardware key] -> Listed in proposal.md under Impact; the maintainer enrols the first key with a staff account that keeps TOTP.
