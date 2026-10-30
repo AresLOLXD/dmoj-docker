@@ -22,6 +22,7 @@ ALLOWED_HOSTS = [HOST]
 
 # Relying-party id for security-key (WebAuthn) 2FA: the bare, lowercase public
 # hostname, with no scheme and no port. Leave HOST empty to keep WebAuthn off.
+# Changing it later stops every enrolled key from working.
 WEBAUTHN_RP_ID = HOST
 
 # Optional apps that DMOJ can make use of.

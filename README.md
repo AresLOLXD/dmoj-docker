@@ -206,14 +206,17 @@ webauthn 3.x, which the pinned `dmoj/repo` commit provides.
   quoted arguments):
   `docker compose exec -T site python3 manage.py shell -c "from django.conf import settings; print(settings.WEBAUTHN_RP_ID)"`
 - **Enrol keys only through the public hostname** (the "Add" button for a
-  security key on the profile edit page). A key registered through another
-  host, such as `127.0.0.1:8080` or a Tailscale name, won't work on the
-  public one.
+  security key on the profile edit page). Enrolment only works through the
+  public hostname: with `ALLOWED_HOSTS = [HOST]`, requests that use any
+  other host (such as `127.0.0.1:8080` or a Tailscale name) are rejected.
 - **Keep TOTP as the fallback** until keys have been used for a while.
   Unsetting `WEBAUTHN_RP_ID` makes the WebAuthn endpoints answer 404 again,
   and an account whose only second factor is a key is locked out (keys have
-  no scratch codes). The first person to enrol a key should be a staff
-  member who keeps TOTP.
+  no scratch codes). Keys are bound to the exact `WEBAUTHN_RP_ID` string,
+  so changing `HOST` (a domain move, a typo in `site.env`) has the same
+  effect as unsetting it: every enrolled key stops working and key-only
+  accounts are locked out. The first person to enrol a key should be a
+  staff member who keeps TOTP.
 - **No nginx or proxy change is needed:** `uwsgi_pass` with
   `include uwsgi_params` already hands the browser's `Host` header to
   Django. Don't add `USE_X_FORWARDED_HOST`, and don't set
