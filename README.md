@@ -192,6 +192,33 @@ server {
 }
 ```
 
+### Security keys (WebAuthn)
+
+Security-key 2FA is controlled by `WEBAUTHN_RP_ID` in `local_settings.py`.
+The template sets it to `HOST`, which must be the bare lowercase public
+hostname (no scheme, no port); an empty `HOST` keeps WebAuthn off. It needs
+webauthn 3.x, which the pinned `dmoj/repo` commit provides.
+
+- **Existing installs:** `scripts/initialize` never overwrites an existing
+  `dmoj/repo/dmoj/local_settings.py`, so add the same line there by hand and
+  run `docker compose restart site`. To check it, this must print the
+  hostname (don't use `./scripts/manage.py shell -c`, the wrapper splits
+  quoted arguments):
+  `docker compose exec -T site python3 manage.py shell -c "from django.conf import settings; print(settings.WEBAUTHN_RP_ID)"`
+- **Enrol keys only through the public hostname** (the "Add" button for a
+  security key on the profile edit page). A key registered through another
+  host, such as `127.0.0.1:8080` or a Tailscale name, won't work on the
+  public one.
+- **Keep TOTP as the fallback** until keys have been used for a while.
+  Unsetting `WEBAUTHN_RP_ID` makes the WebAuthn endpoints answer 404 again,
+  and an account whose only second factor is a key is locked out (keys have
+  no scratch codes). The first person to enrol a key should be a staff
+  member who keeps TOTP.
+- **No nginx or proxy change is needed:** `uwsgi_pass` with
+  `include uwsgi_params` already hands the browser's `Host` header to
+  Django. Don't add `USE_X_FORWARDED_HOST`, and don't set
+  `originRequest.httpHostHeader` in a Cloudflare tunnel ingress.
+
 ### Setting up a judge
 
 `dmoj/judge-tier3-1/Dockerfile` builds `FROM localhost/areslolxd/runtimes-tier3:karel`
