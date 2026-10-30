@@ -20,6 +20,10 @@ HOST = os.environ.get('HOST', '')
 # You must do this once you set DEBUG to False.
 ALLOWED_HOSTS = [HOST]
 
+# Relying-party id for security-key (WebAuthn) 2FA: the bare, lowercase public
+# hostname, with no scheme and no port. Leave HOST empty to keep WebAuthn off.
+WEBAUTHN_RP_ID = HOST
+
 # Optional apps that DMOJ can make use of.
 INSTALLED_APPS += ()
 
