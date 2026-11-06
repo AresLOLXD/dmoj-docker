@@ -12,7 +12,7 @@ pass() { echo "PASS $1"; }
 fail() { echo "FAIL $1"; RESULT=1; }
 
 # Builds a fresh tree in $TMP, runs the copied update and sets $STATUS.
-# FAIL_BACKUP / FAIL_MIGRATE in the environment make the matching stub fail.
+# FAIL_BACKUP / FAIL_CHECK / FAIL_MIGRATE in the environment make the matching stub fail.
 run_update() {
     TMP=$(mktemp -d -p "$BASE")
     CALLS=$TMP/calls
@@ -29,6 +29,9 @@ STUB
 #!/bin/bash
 echo "docker $*" >> "$CALLS"
 if [ -n "$FAIL_MIGRATE" ] && [[ "$*" == *"manage.py migrate"* ]]; then
+    exit 1
+fi
+if [ -n "$FAIL_CHECK" ] && [[ "$*" == *"manage.py check"* ]]; then
     exit 1
 fi
 STUB
@@ -85,5 +88,30 @@ if [ "$STATUS" -eq 0 ] && [ -n "$BACKUP" ] && [[ "$TAIL" == *"$BACKUP"* ]] \
     && [[ "$TAIL" == *"./scripts/restore_db"* ]] \
     && [[ "$TAIL" == *"docker compose stop site celery bridged"* ]] \
     && [[ "$TAIL" == *"git -C repo checkout abc1234"* ]]; then pass "$NAME"; else fail "$NAME"; fi
+
+NAME="image check failure aborts before the stop"
+FAIL_CHECK=1 run_update
+BACKUP=$(backup_path)
+if [ "$STATUS" -ne 0 ] && has_call "docker compose build site celery bridged wsevent" \
+    && has_call "manage.py check" && ! has_call "docker compose stop" \
+    && ! has_call "manage.py migrate" && ! has_call "up -d" && ! has_call restart \
+    && [ -n "$BACKUP" ] && has_out "$BACKUP" && has_out "failed manage.py check" \
+    && has_out "nothing was stopped" && has_out "git -C repo checkout abc1234"; then pass "$NAME"; else fail "$NAME"; fi
+
+NAME="image check precedes the stop"
+run_update
+BUILD=$(line_of "docker compose build site celery bridged wsevent")
+CHECK=$(line_of "manage.py check")
+STOP=$(line_of "docker compose stop site celery bridged")
+MIGRATE=$(line_of "manage.py migrate")
+UP=$(line_of "up -d site celery bridged wsevent")
+CHECK_LINE=$(sed -n "${CHECK:-1}p" "$CALLS")
+if [ "$STATUS" -eq 0 ] && [ -n "$BUILD" ] && [ -n "$CHECK" ] && [ -n "$STOP" ] \
+    && [ -n "$MIGRATE" ] && [ -n "$UP" ] \
+    && [[ "$CHECK_LINE" == *"run --rm --no-deps"* ]] \
+    && [[ "$CHECK_LINE" == *"--entrypoint python3 site manage.py check"* ]] \
+    && [[ "$CHECK_LINE" != *" exec "* ]] \
+    && [ "$BUILD" -lt "$CHECK" ] && [ "$CHECK" -lt "$STOP" ] \
+    && [ "$STOP" -lt "$MIGRATE" ] && [ "$MIGRATE" -lt "$UP" ]; then pass "$NAME"; else fail "$NAME"; fi
 
 exit $RESULT
