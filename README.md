@@ -118,10 +118,11 @@ In addition to the scripts already covered above (`migrate`, `copy_static`,
 
 1. records the current `dmoj/repo` commit and backs up the database to `backups/pre-update-<timestamp>.sql`, aborting before changing anything if the backup fails;
 2. updates the `dmoj/repo` submodule and rebuilds the images without restarting anything;
-3. stops `site`, `celery` and `bridged`, then runs `manage.py migrate` in a one-off container (`docker compose run`, since `site` is stopped);
-4. starts the services again only if the migration succeeded, and prints the backup path.
+3. checks the freshly built `site` image with `manage.py check` before stopping anything, and aborts with everything still running if the check fails;
+4. stops `site`, `celery` and `bridged`, then runs `manage.py migrate` in a one-off container (`docker compose run`, since `site` is stopped);
+5. starts the services again only if the migration succeeded, and prints the backup path.
 
-`site`, `celery` and `bridged` are down while the migration runs, by design. To undo an update, stop the app first (`docker compose stop site celery bridged`), check out the previous commit (`git -C repo checkout <previous commit>`, printed at the start of the update), restore the backup (`./scripts/restore_db backups/pre-update-<timestamp>.sql`), then rebuild the images and start the services as described in [Migrations fail](#migrations-fail); restoring while the app runs on the new code is unsafe. If the migration fails, see [Migrations fail](#migrations-fail). `update` does not rebuild static files; run `./scripts/copy_static` if they changed upstream.
+`site`, `celery` and `bridged` are down while the migration runs, by design. If the image's `manage.py check` fails, nothing was stopped: run the printed `git -C repo checkout <previous commit>` to realign the source with the running containers, and do not recreate the services (`docker compose up -d`) until the cause is fixed, because the `ninjaclasher/dmoj-*:latest` tags already point at the new images (running containers keep the image they started from, so a plain restart is not affected). If `COMPOSE_EXEC_FLAGS` is unset in a shell without a TTY, the one-off container can fail even though the image is fine; set `COMPOSE_EXEC_FLAGS=-T`. To undo an update, stop the app first (`docker compose stop site celery bridged`), check out the previous commit (`git -C repo checkout <previous commit>`, printed at the start of the update), restore the backup (`./scripts/restore_db backups/pre-update-<timestamp>.sql`), then rebuild the images and start the services as described in [Migrations fail](#migrations-fail); restoring while the app runs on the new code is unsafe. If the migration fails, see [Migrations fail](#migrations-fail). `update` does not rebuild static files; run `./scripts/copy_static` if they changed upstream.
 
 Updating various sections of the site by hand requires different images to be rebuilt.
 
