@@ -30,6 +30,16 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
+echo "== Checking the new site image =="
+docker compose run --rm --no-deps $COMPOSE_EXEC_FLAGS --entrypoint python3 site manage.py check
+if [ $? -ne 0 ]; then
+    echo "Error: the new site image failed manage.py check; nothing was stopped" 1>&2
+    echo "Backup: $BACKUP_PATH" 1>&2
+    echo "The submodule is already updated; to realign the source with the running containers: git -C repo checkout $PREV_SHA" 1>&2
+    exit 1
+fi
+
+echo ""
 echo "== Stopping site, celery, bridged =="
 docker compose stop site celery bridged
 if [ $? -ne 0 ]; then

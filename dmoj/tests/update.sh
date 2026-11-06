@@ -95,7 +95,7 @@ BACKUP=$(backup_path)
 if [ "$STATUS" -ne 0 ] && has_call "docker compose build site celery bridged wsevent" \
     && has_call "manage.py check" && ! has_call "docker compose stop" \
     && ! has_call "manage.py migrate" && ! has_call "up -d" && ! has_call restart \
-    && [ -n "$BACKUP" ] && has_out "$BACKUP" && has_out "failed manage.py check" \
+    && [ -n "$BACKUP" ] && has_out "Backup: $BACKUP" && has_out "failed manage.py check" \
     && has_out "nothing was stopped" && has_out "git -C repo checkout abc1234"; then pass "$NAME"; else fail "$NAME"; fi
 
 NAME="image check precedes the stop"
