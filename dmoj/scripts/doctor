@@ -63,7 +63,19 @@ check "Assets volume is non-empty" docker compose exec -T $COMPOSE_EXEC_FLAGS si
 
 echo ""
 echo "== nginx =="
-check "nginx responds on :80" curl -sf http://localhost/ -o /dev/null
+# Probe the address compose publishes (8080 here, 8081 on the production host),
+# never a fixed port: another listener on :80 would make the check pass wrongly.
+if NGINX_ADDR=$(docker compose port nginx 80 2>/dev/null | head -n 1) && [ -n "$NGINX_ADDR" ]; then
+    NGINX_HOST=${NGINX_ADDR%:*}
+    NGINX_PORT=${NGINX_ADDR##*:}
+    case "$NGINX_HOST" in
+        0.0.0.0 | '[::]' | ::) NGINX_HOST=127.0.0.1 ;;
+    esac
+    check "nginx responds on $NGINX_HOST:$NGINX_PORT" curl -sf "http://$NGINX_HOST:$NGINX_PORT/" -o /dev/null
+else
+    echo "✗ nginx responds: nginx is not running or publishes no port"
+    FAILED=1
+fi
 
 echo ""
 echo "== wsevent =="
