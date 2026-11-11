@@ -8,7 +8,7 @@ The failure happens when the worker opens its broker connection, so a check that
 
 ## What Changes
 
-- After the existing `site` image check and before stopping anything, `dmoj/scripts/update` runs a one-off container of the freshly built `celery` image that opens the Celery broker connection (`app.connection_for_read().ensure_connection(max_retries=1)` on `dmoj_celery`'s app, with a bounded timeout).
+- After the existing `site` image check and before stopping anything, `dmoj/scripts/update` runs a one-off container of the freshly built `celery` image that opens the Celery broker connection (`app.connection_for_read().ensure_connection(max_retries=1)` on `dmoj_celery`'s app, with a retry limit).
 - If that fails, the update exits non-zero without stopping, migrating or starting anything, and prints what failed, the backup path and the `git -C repo checkout <previous commit>` realign command, like the `site` check does.
 - The abort output of the two checks is produced by one small shell function instead of two copies of the same three lines.
 - `dmoj/tests/update.sh` gets cases for the new check; the README step list and failure notes mention it.
