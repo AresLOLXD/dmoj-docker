@@ -21,9 +21,11 @@ RUN apt-get update && \
 COPY --from=node /usr/local /usr/local
 
 RUN npm install -g sass@1.83.0 postcss-cli@11.0.1 postcss@8.5.16 autoprefixer@10.5.2
+# redis-py must stay >= 6.1.0: kombu 5.7 (locked in repo/uv.lock) refuses the Redis broker below that,
+# and the celery worker crash-loops at start.
 RUN pip3 install \
         pymysql==1.2.0 mysqlclient==2.2.8 websocket-client==1.9.0 \
-        uwsgi==2.0.31 django-redis==5.4.0 redis==5.2.1
+        uwsgi==2.0.31 django-redis==5.4.0 redis==6.4.0
 
 COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /bin/uv
 
