@@ -71,7 +71,11 @@ if NGINX_ADDR=$(docker compose port nginx 80 2>/dev/null | head -n 1) && [ -n "$
     case "$NGINX_HOST" in
         0.0.0.0 | '[::]' | ::) NGINX_HOST=127.0.0.1 ;;
     esac
-    check "nginx responds on $NGINX_HOST:$NGINX_PORT" curl -sf "http://$NGINX_HOST:$NGINX_PORT/" -o /dev/null
+    # The site only allows its own hostname (ALLOWED_HOSTS), so a bare loopback request answers 400.
+    SITE_HOST=$(docker compose exec -T $COMPOSE_EXEC_FLAGS site printenv HOST 2>/dev/null)
+    CURL_ARGS=(-sf "http://$NGINX_HOST:$NGINX_PORT/" -o /dev/null)
+    [ -n "$SITE_HOST" ] && CURL_ARGS+=(-H "Host: $SITE_HOST")
+    check "nginx responds on $NGINX_HOST:$NGINX_PORT" curl "${CURL_ARGS[@]}"
 else
     echo "✗ nginx responds: nginx is not running or publishes no port"
     FAILED=1
