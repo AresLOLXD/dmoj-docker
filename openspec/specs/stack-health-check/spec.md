@@ -6,7 +6,7 @@ Defines what `./scripts/doctor` verifies about the running stack and how it repo
 ## Requirements
 
 ### Requirement: The nginx check probes the address compose publishes
-The health check SHALL verify the `nginx` service by requesting `/` at the host address and port that compose publishes for nginx's container port 80, and SHALL include that address in the check's output line. It SHALL NOT probe any fixed port. A wildcard bind (`0.0.0.0` or `[::]`) SHALL be probed through `127.0.0.1`. The request SHALL carry `Host: <HOST>`, where `<HOST>` is the `HOST` value of the running `site` container, so that a site that only allows its own hostname answers it; when the container reports no `HOST`, no `Host` header SHALL be set. The pass criterion is unchanged: an HTTP status below 400.
+The health check SHALL verify the `nginx` service by requesting `/` at the host address and port that compose publishes for nginx's container port 80, and SHALL include that address in the check's output line. It SHALL NOT probe any fixed port. A wildcard bind (`0.0.0.0` or `[::]`) SHALL be probed through `127.0.0.1`. The pass criterion is unchanged: an HTTP status below 400.
 
 #### Scenario: The published address is probed and shown
 - **WHEN** nginx is running and compose publishes it at `127.0.0.1:8080`, and `./scripts/doctor` runs
@@ -31,6 +31,9 @@ The health check SHALL verify the `nginx` service by requesting `/` at the host 
 - **THEN** the sections after it (`== wsevent ==`, `== Rendering services ==`) are still printed
 - **CHECK** with `nginx` stopped, `./scripts/doctor | grep -c -E '^== (wsevent|Rendering services) =='` prints `2`
 - **CHECK** `bash dmoj/tests/doctor.sh` prints `PASS` for `stopped nginx fails without falling back to port 80, other sections still run`
+
+### Requirement: The nginx check sends the site's Host header
+The nginx check's request SHALL carry `Host: <HOST>`, where `<HOST>` is the `HOST` value of the running `site` container, so that a site that only allows its own hostname answers it. When the container reports no `HOST`, no `Host` header SHALL be set.
 
 #### Scenario: A site that only allows its own hostname still passes
 - **WHEN** the `site` container's `HOST` is `dmoj.example` and the site answers 400 to any other `Host`, and `./scripts/doctor` runs
