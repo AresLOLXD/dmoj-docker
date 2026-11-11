@@ -44,6 +44,14 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
+echo "== Checking the celery broker connection =="
+# Open the connection instead of starting a worker: a worker would take tasks from the live queue.
+docker compose run --rm --no-deps $COMPOSE_EXEC_FLAGS --entrypoint python3 celery -c "from dmoj_celery import app; app.connection_for_read().ensure_connection(max_retries=1, timeout=10)"
+if [ $? -ne 0 ]; then
+    abort_before_stop "the new celery image could not reach the broker (is redis running?)"
+fi
+
+echo ""
 echo "== Stopping site, celery, bridged =="
 docker compose stop site celery bridged
 if [ $? -ne 0 ]; then
